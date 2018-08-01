@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Ae4Extractor
 {
     class FileUtils
     {
+        /// <summary>
+        /// Writes file in an archive file according to its manifest.
+        /// </summary>
+        /// <param name="path">Path to the archive file.</param>
+        /// <param name="files">File entries parsed from the raw manifest.</param>
         public static void WriteFiles(string path, List<Ae4File> files)
         {
             using (var stream = new FileStream(path, FileMode.Open))

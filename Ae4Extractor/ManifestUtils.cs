@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Ae4Extractor
 {
     class ManifestUtils
     {
+        /// <summary>
+        /// Parses an archive manifest into a list of file attributes.
+        /// </summary>
+        /// <param name="manifest">Byte array of raw manifest.</param>
+        /// <returns>List of parsed file attributes.</returns>
         public static List<Ae4File> ParseManifest(byte[] manifest)
         {
             var files = new List<Ae4File>();

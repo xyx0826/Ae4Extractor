@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Ae4Extractor
 {
@@ -26,10 +22,7 @@ namespace Ae4Extractor
             }
 
             Console.WriteLine("Searching for manifest...");
-            var compressedManifest = ByteUtils.GetCompressedMf(args[0]);
-            Console.WriteLine("Compressed manifest found. " +
-                $"Size: {compressedManifest.Length} bytes");
-            var decompressedManifest = ByteUtils.InflateData(compressedManifest);
+            var decompressedManifest = ByteUtils.GetDecompressedMf(args[0]);
             Console.WriteLine("Decompressed manifest size: " +
                 $"{decompressedManifest.Length} bytes");
             Console.WriteLine("Parsing manifest...");

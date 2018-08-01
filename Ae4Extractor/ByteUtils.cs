@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Ae4Extractor
 {
@@ -17,8 +14,34 @@ namespace Ae4Extractor
         private static readonly byte _zlibCmf = 0x78;
         private static readonly byte _zlibFlg = 0xda;
 
+        /// <summary>
+        /// Retrives file manifest from the end of the given archive file.
+        /// </summary>
+        /// <param name="file">Archive file to be analysed.</param>
+        /// <returns>Byte array of decompressed file manifest.</returns>
+        public static byte[] GetDecompressedMf(string file)
+        {
+            byte[] compressedMf = new byte[0];
+            byte[] decompressedMf;
+            do
+            {
+                Console.WriteLine("Finding valid zlib header. " +
+                    $"Last position: -{compressedMf.Length}");
 
-        public static byte[] GetCompressedMf(string file)
+                compressedMf = GetCompressedMf(file, compressedMf.Length);
+                decompressedMf = InflateData(compressedMf);
+            }
+            while (decompressedMf == null);
+            return decompressedMf;
+        }
+
+        /// <summary>
+        /// Searches the file for a compressed file manifest.
+        /// </summary>
+        /// <param name="file">The file to be searched.</param>
+        /// <param name="searchFrom">The position that zlib headers before it shall be omitted.</param>
+        /// <returns>Byte array of compressed file manifest.</returns>
+        static byte[] GetCompressedMf(string file, int searchFrom = 0)
         {
             var compressedBytes = new List<byte>(_maxSearchedBytes / 2);
             var hasFound = false;
@@ -34,9 +57,10 @@ namespace Ae4Extractor
                     stream.Read(bytesToSearch, 0, _searchSteppingBytes);
 
                     var searchResult = CheckForZlibHeader(bytesToSearch);
-                    if (searchResult == -1)
+                    if (currentOffset < searchFrom + _searchSteppingBytes || searchResult == -1)
                     {
                         // header not found, assume it is part of zlibbed data
+                        // or it can be intentionally omitted by searchFrom
                         compressedBytes.InsertRange(0, bytesToSearch);
                     }
                     else
@@ -54,32 +78,41 @@ namespace Ae4Extractor
             }
         }
 
-        public static byte[] InflateData(byte[] deflatedData)
+        /// <summary>
+        /// Attempts to inflate (decompress) given byte data.
+        /// </summary>
+        /// <param name="deflatedData">Byte array of data compressed in Deflate mode.</param>
+        /// <returns>Byte array of decompressed data.</returns>
+        static byte[] InflateData(byte[] deflatedData)
         {
             using (DeflateStream stream =
                 new DeflateStream(new MemoryStream(deflatedData), CompressionMode.Decompress))
             {
                 using (MemoryStream outStream = new MemoryStream())
                 {
-                    stream.CopyTo(outStream);
-                    return outStream.ToArray();
+                    try
+                    {
+                        stream.CopyTo(outStream);
+                        return outStream.ToArray();
+                    }
+                    catch { return null; }
                 }
             }
         }
 
-        public static int CheckForZlibHeader(byte[] data)
+        /// <summary>
+        /// Checks the given byte array for zlib header presence.
+        /// </summary>
+        /// <param name="data">Data to be checked.</param>
+        /// <returns>Position of the found zlib header, or -1 if not found.</returns>
+        static int CheckForZlibHeader(byte[] data)
         {
-            for (int i = 0; i < data.Length - 2; i ++)
+            for (int i = 0; i < data.Length - 1; i ++)
             {
                 if (data[i].Equals(_zlibCmf) && data[i + 1].Equals(_zlibFlg))
                     return i;
             }
             return -1;
-        }
-
-        public static void WriteDebug(string log)
-        {
-            if (Debugger.IsAttached) Console.WriteLine(log);
         }
     }
 }
