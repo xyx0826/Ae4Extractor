@@ -41,6 +41,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Ae4File.cs" />
+    <Compile Include="ByteUtils.cs" />
+    <Compile Include="FileUtils.cs" />
+    <Compile Include="ManifestUtils.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
