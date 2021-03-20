@@ -1,18 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 
 namespace Ae4Extractor
 {
-    class ByteUtils
+    /// <summary>
+    /// Searches and extracts the manifest from a data container.
+    /// </summary>
+    internal static class ByteUtils
     {
-        private static readonly int _maxSearchedBytes = 8192000;
-        private static readonly int _searchSteppingBytes = 512;
-
-        private static readonly byte _zlibCmf = 0x78;
-        private static readonly byte _zlibFlg = 0xda;
+        /// <summary>
+        /// The offset of the manifest offset field, from the end of file.
+        /// </summary>
+        private const int OffsetFromEnd = -18;
 
         /// <summary>
         /// Retrives file manifest from the end of the given archive file.
@@ -21,60 +21,32 @@ namespace Ae4Extractor
         /// <returns>Byte array of decompressed file manifest.</returns>
         public static byte[] GetDecompressedMf(string file)
         {
-            byte[] compressedMf = new byte[0];
-            byte[] decompressedMf;
-            do
-            {
-                Console.WriteLine("Finding valid zlib header. " +
-                    $"Last position: -{compressedMf.Length}");
-
-                compressedMf = GetCompressedMf(file, compressedMf.Length);
-                decompressedMf = InflateData(compressedMf);
-            }
-            while (decompressedMf == null);
-            return decompressedMf;
+            var compressedMf = GetCompressedMf(file);
+            return InflateData(compressedMf);
         }
 
         /// <summary>
         /// Searches the file for a compressed file manifest.
         /// </summary>
         /// <param name="file">The file to be searched.</param>
-        /// <param name="searchFrom">The position that zlib headers before it shall be omitted.</param>
         /// <returns>Byte array of compressed file manifest.</returns>
-        static byte[] GetCompressedMf(string file, int searchFrom = 0)
+        private static byte[] GetCompressedMf(string file)
         {
-            var compressedBytes = new List<byte>(_maxSearchedBytes / 2);
-            var hasFound = false;
-
+            var temp = new byte[4];
             using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read))
             {
-                for (int currentOffset = _searchSteppingBytes; 
-                    currentOffset <= _maxSearchedBytes; 
-                    currentOffset += _searchSteppingBytes)
-                {
-                    stream.Seek(-currentOffset, SeekOrigin.End);
-                    var bytesToSearch = new byte[_searchSteppingBytes];
-                    stream.Read(bytesToSearch, 0, _searchSteppingBytes);
+                // Read manifest offset from tail of file
+                stream.Seek(OffsetFromEnd, SeekOrigin.End);
+                stream.Read(temp, 0, temp.Length);
+                // Skip 2-byte zlib header
+                var mfOffset = BitConverter.ToUInt32(temp, 0) + 2;
 
-                    var searchResult = CheckForZlibHeader(bytesToSearch);
-                    if (currentOffset < searchFrom + _searchSteppingBytes || searchResult == -1)
-                    {
-                        // header not found, assume it is part of zlibbed data
-                        // or it can be intentionally omitted by searchFrom
-                        compressedBytes.InsertRange(0, bytesToSearch);
-                    }
-                    else
-                    {
-                        // header found, write data behind header position
-                        hasFound = true;
-                        compressedBytes.InsertRange(0, bytesToSearch.Skip(searchResult));
-                        break;
-                    }
-                }
-                
-                // DeflateStream does not want 2-byte zlib header
-                if (hasFound) return compressedBytes.Skip(2).ToArray();
-                else return null;
+                // Compute read length and read the blob
+                var mfLength = stream.Length - mfOffset - OffsetFromEnd;
+                var mf = new byte[mfLength];
+                stream.Seek(mfOffset, SeekOrigin.Begin);
+                stream.Read(mf, 0, mf.Length);
+                return mf;
             }
         }
 
@@ -83,36 +55,24 @@ namespace Ae4Extractor
         /// </summary>
         /// <param name="deflatedData">Byte array of data compressed in Deflate mode.</param>
         /// <returns>Byte array of decompressed data.</returns>
-        static byte[] InflateData(byte[] deflatedData)
+        private static byte[] InflateData(byte[] deflatedData)
         {
-            using (DeflateStream stream =
+            using (var stream =
                 new DeflateStream(new MemoryStream(deflatedData), CompressionMode.Decompress))
             {
-                using (MemoryStream outStream = new MemoryStream())
+                using (var outStream = new MemoryStream())
                 {
                     try
                     {
                         stream.CopyTo(outStream);
                         return outStream.ToArray();
                     }
-                    catch { return null; }
+                    catch
+                    {
+                        return null;
+                    }
                 }
             }
-        }
-
-        /// <summary>
-        /// Checks the given byte array for zlib header presence.
-        /// </summary>
-        /// <param name="data">Data to be checked.</param>
-        /// <returns>Position of the found zlib header, or -1 if not found.</returns>
-        static int CheckForZlibHeader(byte[] data)
-        {
-            for (int i = 0; i < data.Length - 1; i ++)
-            {
-                if (data[i].Equals(_zlibCmf) && data[i + 1].Equals(_zlibFlg))
-                    return i;
-            }
-            return -1;
         }
     }
 }
