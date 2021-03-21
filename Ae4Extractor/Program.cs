@@ -30,7 +30,7 @@ namespace Ae4Extractor
             Console.WriteLine($"Manifest contains {fileList.Count} files. Writing files...");
             FileUtils.WriteFiles(args[0], fileList);
             Console.WriteLine("Extraction complete. Press any key to exit.");
-            Console.Read();
+            Console.ReadKey();
         }
     }
 }
