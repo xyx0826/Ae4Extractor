@@ -5,63 +5,51 @@ using System.Text;
 
 namespace Ae4Extractor
 {
-    class ManifestUtils
+    internal static class ManifestUtils
     {
         /// <summary>
         /// Parses an archive manifest into a list of file attributes.
         /// </summary>
         /// <param name="manifest">Byte array of raw manifest.</param>
         /// <returns>List of parsed file attributes.</returns>
-        public static List<Ae4File> ParseManifest(byte[] manifest)
+        public static List<TinFileInfo> ParseManifest(byte[] manifest)
         {
-            var files = new List<Ae4File>();
+            var sb = new StringBuilder(64);
+            var buf = new byte[8];
+            var val = new ulong[3];
+
+            var files = new List<TinFileInfo>();
+
             using (var stream = new MemoryStream(manifest))
             {
                 while (stream.Position < stream.Length)
                 {
-                    byte currentByte = 0xff;
-
-                    // read file name bytes until terminator (0x00)
-                    var nameBytes = new List<byte>();
-                    while (currentByte != 0x00)
+                    // Read path
+                    var c = (char) stream.ReadByte();
+                    while (c > 0)
                     {
-                        currentByte = Convert.ToByte(stream.ReadByte());
-                        nameBytes.Add(currentByte);
+                        sb.Append(c);
+                        c = (char) stream.ReadByte();
                     }
 
-                    nameBytes.RemoveAt(nameBytes.Count - 1);
+                    var path = sb.ToString();
+                    sb.Clear();
 
+                    // Length of all TinFileInfo fields
                     stream.Position += 8;
 
-                    // read file offset bytes (8 bytes)
-                    var offsetBytes = new byte[8];
-                    for (int i = 0; i < 8; i++)
+                    // File offset, raw length, compressed length
+                    for (var i = 0; i < val.Length; i++)
                     {
-                        currentByte = Convert.ToByte(stream.ReadByte());
-                        offsetBytes[i] = currentByte;
+                        stream.Read(buf, 0, buf.Length);
+                        val[i] = BitConverter.ToUInt64(buf, 0);
                     }
 
-                    // read file size bytes (larger/unknown) (8 bytes)
-                    var sizeUnknownBytes = new byte[8];
-                    for (int i = 0; i < 8; i++)
-                    {
-                        currentByte = Convert.ToByte(stream.ReadByte());
-                        sizeUnknownBytes[i] = currentByte;
-                    }
-
-                    // read file size bytes (smaller/valid) (8 bytes)
-                    var sizeBytes = new byte[8];
-                    for (int i = 0; i < 8; i++)
-                    {
-                        currentByte = Convert.ToByte(stream.ReadByte());
-                        sizeBytes[i] = currentByte;
-                    }
-
-                    stream.Position += 2;
-                    files.Add(new Ae4File(Encoding.UTF8.GetString(nameBytes.ToArray()),
-                        BitConverter.ToInt32(offsetBytes, 0),
-                        BitConverter.ToInt32(sizeUnknownBytes, 0),
-                        BitConverter.ToInt32(sizeBytes, 0)));
+                    // Compression type
+                    stream.Read(buf, 0, 2);
+                    var readAccessType = (TinReadAccessType) (buf[0] | buf[1] << 8);
+                    files.Add(new TinFileInfo(
+                        path, val[0], val[1], val[2], readAccessType));
                 }
                 return files;
             }

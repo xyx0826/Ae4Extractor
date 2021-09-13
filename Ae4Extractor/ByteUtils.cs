@@ -12,7 +12,7 @@ namespace Ae4Extractor
         /// <summary>
         /// The offset of the manifest offset field, from the end of file.
         /// </summary>
-        private const int OffsetFromEnd = -18;
+        private const long OffsetFromEnd = -18;
 
         /// <summary>
         /// Retrives file manifest from the end of the given archive file.
@@ -32,14 +32,15 @@ namespace Ae4Extractor
         /// <returns>Byte array of compressed file manifest.</returns>
         private static byte[] GetCompressedMf(string file)
         {
-            var temp = new byte[4];
+            var temp = new byte[8];
             using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read))
             {
                 // Read manifest offset from tail of file
                 stream.Seek(OffsetFromEnd, SeekOrigin.End);
                 stream.Read(temp, 0, temp.Length);
+                // The next 8 bytes is the compressed manifest length, but we don't care
                 // Skip 2-byte zlib header
-                var mfOffset = BitConverter.ToUInt32(temp, 0) + 2;
+                var mfOffset = BitConverter.ToInt64(temp, 0) + 2;
 
                 // Compute read length and read the blob
                 var mfLength = stream.Length - mfOffset - OffsetFromEnd;

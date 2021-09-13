@@ -17,7 +17,7 @@ namespace Ae4Extractor
                 Console.WriteLine("Usage: Ae4Extractor.exe [file-to-be-extracted]");
                 Console.WriteLine("ERROR: File not specified or does not exist. " +
                     "Press any key to exit.");
-                Console.Read();
+                Console.ReadKey();
                 return;
             }
 
