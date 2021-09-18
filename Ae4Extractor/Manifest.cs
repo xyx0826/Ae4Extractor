@@ -1,13 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 
 namespace Ae4Extractor
 {
     /// <summary>
-    /// Searches and extracts the manifest from a data container.
+    /// Extracts and reads the manifest from a Tin file.
     /// </summary>
-    internal static class ByteUtils
+    internal static class Manifest
     {
         /// <summary>
         /// The offset of the manifest offset field, from the end of file.
@@ -73,6 +75,54 @@ namespace Ae4Extractor
                         return null;
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Parses an archive manifest into a list of file attributes.
+        /// </summary>
+        /// <param name="manifest">Byte array of raw manifest.</param>
+        /// <returns>List of parsed file attributes.</returns>
+        public static List<TinFile> ParseManifest(byte[] manifest)
+        {
+            var sb = new StringBuilder(64);
+            var buf = new byte[8];
+            var val = new ulong[3];
+
+            var files = new List<TinFile>();
+
+            using (var stream = new MemoryStream(manifest))
+            {
+                while (stream.Position < stream.Length)
+                {
+                    // Read path
+                    var c = (char) stream.ReadByte();
+                    while (c > 0)
+                    {
+                        sb.Append(c);
+                        c = (char) stream.ReadByte();
+                    }
+
+                    var path = sb.ToString();
+                    sb.Clear();
+
+                    // Length of all TinFile fields
+                    stream.Position += 8;
+
+                    // File offset, raw length, compressed length
+                    for (var i = 0; i < val.Length; i++)
+                    {
+                        stream.Read(buf, 0, buf.Length);
+                        val[i] = BitConverter.ToUInt64(buf, 0);
+                    }
+
+                    // Compression type
+                    stream.Read(buf, 0, 2);
+                    var readAccessType = (TinReadAccessType) (buf[0] | buf[1] << 8);
+                    files.Add(new TinFile(
+                        path, val[0], val[1], val[2], readAccessType));
+                }
+                return files;
             }
         }
     }

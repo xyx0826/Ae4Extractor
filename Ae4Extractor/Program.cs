@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Ae4Extractor
 {
-    class Program
+    internal class Program
     {
         static void Main(string[] args)
         {
@@ -21,14 +21,11 @@ namespace Ae4Extractor
                 return;
             }
 
-            Console.WriteLine("Searching for manifest...");
-            var decompressedManifest = ByteUtils.GetDecompressedMf(args[0]);
-            Console.WriteLine("Decompressed manifest size: " +
-                $"{decompressedManifest.Length} bytes");
-            Console.WriteLine("Parsing manifest...");
-            var fileList = ManifestUtils.ParseManifest(decompressedManifest);
-            Console.WriteLine($"Manifest contains {fileList.Count} files. Writing files...");
-            FileUtils.WriteFiles(args[0], fileList);
+            var mf = Manifest.GetDecompressedMf(args[0]);
+            Console.WriteLine($"Parsing {mf.Length} bytes of manifest...");
+            var fileList = Manifest.ParseManifest(mf);
+            Console.WriteLine($"Writing {fileList.Count} files...");
+            Extraction.WriteFiles(args[0], fileList);
             Console.WriteLine("Extraction complete. Press any key to exit.");
             Console.ReadKey();
         }

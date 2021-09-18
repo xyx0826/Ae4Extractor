@@ -6,9 +6,9 @@ namespace Ae4Extractor
     /// Length, location, and compression type about a Tin file.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal readonly struct TinFileInfo
+    internal readonly struct TinFile
     {
-        public TinFileInfo(
+        public TinFile(
             string path,
             ulong offset, ulong rawSize, ulong compressedSize,
             TinReadAccessType readAccessType)

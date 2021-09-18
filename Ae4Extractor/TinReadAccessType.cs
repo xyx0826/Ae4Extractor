@@ -1,6 +1,6 @@
 ﻿namespace Ae4Extractor
 {
-    enum TinReadAccessType : ushort
+    internal enum TinReadAccessType : ushort
     {
         RawReadAccess,
         ZLibReadAccess,

@@ -55,10 +55,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TinFileInfo.cs" />
-    <Compile Include="ByteUtils.cs" />
-    <Compile Include="FileUtils.cs" />
-    <Compile Include="ManifestUtils.cs" />
+    <Compile Include="TinFile.cs" />
+    <Compile Include="Extraction.cs" />
+    <Compile Include="Manifest.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TinReadAccessType.cs" />

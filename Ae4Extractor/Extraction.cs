@@ -8,14 +8,14 @@ namespace Ae4Extractor
     /// <summary>
     /// Handles writing extracted files.
     /// </summary>
-    internal static class FileUtils
+    internal static class Extraction
     {
         /// <summary>
         /// Writes file in an archive file according to its manifest.
         /// </summary>
         /// <param name="path">Path to the archive file.</param>
         /// <param name="files">File entries parsed from the raw manifest.</param>
-        public static void WriteFiles(string path, IEnumerable<TinFileInfo> files)
+        public static void WriteFiles(string path, IEnumerable<TinFile> files)
         {
             var createdFolders = new HashSet<string>();
 
