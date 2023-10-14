@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using ZstdNet;
 
 namespace Ae4Extractor
@@ -44,6 +45,19 @@ namespace Ae4Extractor
                             case TinReadAccessType.RawReadAccess:
                                 // Read the raw bytes
                                 newFile.Write(data, 0, data.Length);
+                                break;
+                            case TinReadAccessType.ZLibReadAccess:
+                                if (data.Length < 2)
+                                {
+                                    throw new InvalidDataException("Compressed data is too short for ZLibReadAccess.");
+                                }
+
+                                // Skip 2-byte zlib header when decompressing
+                                using (var dataStream = new MemoryStream(data, 2, data.Length - 2))
+                                using (var zlib = new DeflateStream(dataStream, CompressionMode.Decompress))
+                                {
+                                    zlib.CopyTo(newFile);
+                                }
                                 break;
                             case TinReadAccessType.ZStdReadAccess:
                                 // Wrap stream in a DecompressStream
